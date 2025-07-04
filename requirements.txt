@@ -1,0 +1,7 @@
+openai
+openai-agents
+streamlit
+pydantic
+typing-extensions
+types-requests
+requests
