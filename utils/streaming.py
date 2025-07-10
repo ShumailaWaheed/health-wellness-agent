@@ -1,24 +1,15 @@
-from typing import AsyncGenerator, Any
-from openai.agents.runner import Runner
-from openai.agents.types import RunStep
-from openai.agents import Agent
-from openai.agents.types import RunContextWrapper
 from context import UserSessionContext
 
-# Stream response helper
-async def stream_agent_response(
-    agent: Agent,
-    user_input: str,
-    context: RunContextWrapper[UserSessionContext]
-) -> AsyncGenerator[RunStep, Any]:
-    """
-    Streams the agent's response token by token using OpenAI's Runner.stream().
-    Can be used in Streamlit or any async frontend.
-    """
+async def stream_response(agent, input_text: str, context: UserSessionContext):
+    result = await agent.process_input(input_text, context)
 
-    async for step in Runner.stream(
-        starting_agent=agent,
-        input=user_input,
-        context=context
-    ):
-        yield step
+    if result.get("status") == "success" and "message" in result:
+        print("\n💡 Advice:\n" + result["message"] + "\n")
+    elif "message" in result:
+        print("\n📢 " + result["message"] + "\n")
+    elif "error" in result:
+        print("❌ Error:", result["error"])
+        if "details" in result:
+            print("Details:", result["details"])
+    else:
+        print("❓ I didn’t understand. Please rephrase.")

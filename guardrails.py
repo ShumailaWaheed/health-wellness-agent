@@ -1,43 +1,35 @@
-import re
-from typing import Any
+
 from pydantic import BaseModel, ValidationError
+from typing import Optional
+import re
+from context import UserSessionContext
 
-# Input Guardrails
+class ValidationResult(BaseModel):
+    is_valid: bool
+    message: Optional[str] = None
 
-def validate_goal_input(goal_text: str) -> bool:
-    """
-    Validates goal format like: 'lose 5kg in 2 months', 'gain 3kg in 6 weeks'.
-    Returns True if the format is acceptable.
-    """
-    pattern = r"(lose|gain)\s+\d+(kg|lbs)\s+in\s+\d+\s+(days|weeks|months)"
-    return bool(re.fullmatch(pattern, goal_text.strip().lower()))
+def validate_input(input_text: str, context: UserSessionContext) -> ValidationResult:
+    # Validate goal format (e.g., "lose 5kg in 2 months")
+    goal_pattern = r"^(lose|gain)\s+(\d+\.?\d*)\s*(kg|lbs|pounds)\s*in\s*(\d+)\s*(month|week)s?$"
+    if "lose" in input_text.lower() or "gain" in input_text.lower():
+        if not re.match(goal_pattern, input_text.lower()):
+            return ValidationResult(is_valid=False, message="Goal must be in format: 'lose/gain X kg/lbs in Y months/weeks'")
+    
+    # Validate dietary preferences
+    if "vegetarian" in input_text.lower() or "vegan" in input_text.lower():
+        context.diet_preferences = input_text.lower()
+    
+    # Validate injury notes
+    if any(keyword in input_text.lower() for keyword in ["pain", "injury"]):
+        context.injury_notes = input_text
+    
+    return ValidationResult(is_valid=True)
 
-
-def validate_diet_input(diet: str) -> bool:
-    """
-    Accepts only known dietary preferences (basic demo list).
-    """
-    allowed = ["vegetarian", "vegan", "keto", "paleo", "mediterranean", "low carb", "high protein"]
-    return diet.strip().lower() in allowed
-
-
-def validate_injury_input(injury_text: str) -> bool:
-    """
-    Checks if the input mentions valid injury types.
-    """
-    keywords = ["back", "knee", "shoulder", "sprain", "strain", "fracture", "dislocation"]
-    return any(word in injury_text.lower() for word in keywords)
-
-# Output Guardrails
-
-def validate_output_model(output: Any, model_class: type[BaseModel]) -> bool:
-    """
-    Validates that the tool output is a valid instance of the expected Pydantic model.
-    Useful for catching bad responses or missing fields.
-    """
+def validate_output(output: dict, context: UserSessionContext) -> dict:
     try:
-        model_class.parse_obj(output)
-        return True
+        # Ensure output is structured (e.g., JSON or Pydantic model)
+        if not isinstance(output, dict):
+            return {"error": "Output must be a dictionary"}
+        return output
     except ValidationError as e:
-        print(f"❌ Output validation failed: {e}")
-        return False
+        return {"error": f"Output validation failed: {str(e)}"}

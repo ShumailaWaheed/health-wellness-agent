@@ -1,93 +1,152 @@
-# 🧠 Health & Wellness Planner Agent (OpenAI Agents SDK + Streamlit)
+# 🧠 Health & Wellness Agent
 
-This project is a full-stack Health & Wellness Planner built using the **OpenAI Agents SDK**, `pydantic`, and `streamlit`. It includes tools for fitness goals, meal planning, workouts, tracking, and multi-agent escalation support.
-
----
-
-## 🚀 Features
-
-✅ Fitness goal analysis  
-✅ Meal suggestions based on diet  
-✅ Workout recommendations by fitness level  
-✅ Weekly schedule generator  
-✅ Progress + recovery tracker  
-✅ Context memory for multi-turn interaction  
-✅ Specialized expert agents (Nutrition, Injury, Escalation)  
-✅ Live streaming via Streamlit
+An AI-powered assistant that helps users set and achieve their health goals through CLI, Streamlit Dashboard, and Chainlit Chatbot interfaces.
 
 ---
 
-## 📁 Folder Structure
+## 🔹 Overview
 
-```
-health_wellness_agent/
-│
-├── main.py                  # Main planner agent + tools + context
-├── streamlit_app.py         # Streamlit UI frontend
-├── requirements.txt         # All dependencies
-├── README.md                # This file
-│
-├── context.py               # Shared RunContextWrapper + BaseModel
-├── guardrails.py            # Input/output validators
-├── hooks.py                 # Placeholder for tool/agent lifecycle hooks
-│
-├── tools/
-│   ├── goal_analyzer.py
-│   ├── meal_planner.py
-│   ├── workout_recommender.py
-│   ├── scheduler.py
-│   └── tracker.py
-│
-├── agents/
-│   ├── nutrition_expert_agent.py
-│   ├── injury_support_agent.py
-│   └── escalation_agent.py
-│
-└── utils/
-    └── streaming.py
-```
+This project simulates a real-world digital wellness coach using the OpenAI Agents SDK and Gemini API, allowing users to:
+
+- Define structured health goals  
+- Receive personalized meal and fitness plans  
+- Interact via terminal, web UI, or chatbot  
+- Be auto-referred to specialists (injury, nutrition, escalation)  
+- Generate reports and schedule follow-ups  
 
 ---
 
-## 🛠️ Installation & Setup
+## 💪 Key Features
 
+- 🎯 Goal Analysis (e.g., “Lose 5kg in 2 months”)  
+- 🍱 Personalized Meal & Workout Plans  
+- 🛡️ Input/Output Guardrails using Pydantic  
+- 🔁 Real-time streaming (CLI & Chat)  
+- 👥 Agent handoffs (Nutrition, Injury, Human escalation)  
+- ⏰ Weekly reminders & ⬇️ PDF exports  
+- 🌐 Interfaces: CLI + Streamlit + Chainlit  
+- 🔄 State management using `UserSessionContext`  
+
+---
+
+## 🧭 Interfaces
+
+### CLI Agent
+Run:
 ```bash
-# Step 1: Create virtual environment using uv
-uv venv
+python main.py
+```
+- Natural goal conversation  
+- Streamed AI advice  
+- Expert agent handoffs  
 
-# Step 2: Install dependencies
-uv pip install -r requirements.txt
+---
 
-# Step 3: Run the app
+### Streamlit Dashboard
+Run:
+```bash
 streamlit run streamlit_app.py
 ```
-
-Make sure you have access to the OpenAI SDK and a valid API key if needed.
-
----
-
-## ✨ Example Queries to Try
-
-- `lose 5kg in 2 months`  
-- `vegan diet suggestions`  
-- `I'm a beginner, suggest a workout`  
-- `track: I completed yoga today`  
-- `I feel pain in my left knee, please log it`
+- Log in or register  
+- Submit health goals  
+- View & download plans  
+- Email notifications & reminders  
 
 ---
 
-## 🧩 Powered By
-
-- [OpenAI Agents SDK](https://openai.github.io/openai-agents-python/)
-- [Streamlit](https://streamlit.io)
-- [Pydantic](https://docs.pydantic.dev)
-
----
-
-## 📬 Contact
-
-For improvements or feedback, open an issue or contribute directly.
+### Chainlit Chatbot
+Run:
+```bash
+chainlit run chainlit_agent.py
+```
+- Chat in real-time  
+- Auto detect queries needing specialist input  
+- Smart buttons (e.g., “Schedule Call”)  
 
 ---
 
-**License:** MIT
+## 🛠️ Tools Used
+
+- `GoalAnalyzerTool`: Extracts structured goals from user input  
+- `MealPlannerTool`: Suggests a weekly meal plan  
+- `WorkoutRecommenderTool`: Generates exercise plans  
+- `CheckinSchedulerTool`: Logs weekly check-ins  
+- `ProgressTrackerTool`: Tracks health improvements  
+
+---
+
+## 👥 Specialized Agents
+
+| Agent                | Trigger Keyword Examples        |
+|---------------------|---------------------------------|
+| EscalationAgent      | “real trainer”, “talk to someone” |
+| NutritionExpertAgent | “diet”, “nutrition”, “vegan”     |
+| InjurySupportAgent   | “pain”, “injury”, “knee”         |
+
+---
+
+## 🔒 Input & Output Guardrails
+
+- Input validator checks:
+  - Goals like `"Lose 5kg in 2 months"`
+  - Keywords like `"vegetarian"`, `"pain"`  
+- Output validator ensures structured dicts from all tools  
+
+---
+
+## 📥 Setup Instructions
+
+```bash
+# Create virtual environment
+python -m venv .venv
+source .venv/bin/activate  # or .venv\\Scripts\\activate on Windows
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Add your Gemini API key
+echo "GEMINI_API_KEY=your-api-key" > .env
+```
+
+---
+
+## 🧪 Sample Conversations
+
+```
+User: I want to lose 5kg in 2 months  
+→ GoalAnalyzerTool triggers  
+
+User: I'm vegetarian with diabetes  
+→ MealPlannerTool + NutritionExpertAgent triggered  
+
+User: I have knee pain and can't do squats  
+→ InjurySupportAgent takes over  
+
+User: I want to talk to a real coach  
+→ EscalationAgent connects to human  
+```
+
+---
+
+## 🧠 Technologies Used
+
+- Python 3.11+  
+- OpenAI Agents SDK  
+- Google Gemini API  
+- Chainlit  
+- Streamlit  
+- Pydantic  
+- Asyncio  
+
+---
+
+## 📜 License
+
+Educational use only – built for GIAIC AI assignment (Governor Sindh’s Gen AI Initiative).  
+
+---
+
+## 🙋‍♀️ Credits
+
+Created by **Shumaila** with support from OpenAI's guidance and GIAIC curriculum.  
+Need help? Email: `Shumailawaheed253@gmail.com`

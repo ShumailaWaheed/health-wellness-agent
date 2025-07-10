@@ -1,48 +1,16 @@
-from typing import List, Dict
-from pydantic import BaseModel
-from openai.agents import tool
-from openai.agents.types import RunContextWrapper
+from openai_agents import Tool
 from context import UserSessionContext
-from guardrails import validate_injury_input
+from guardrails import validate_output
+import asyncio
+class ProgressTrackerTool(Tool):
+    def __init__(self):
+        super().__init__(name="ProgressTrackerTool")
 
-class ProgressEntry(BaseModel):
-    date: str
-    activity: str
-    note: str
+    def should_trigger(self, input_text: str, context: UserSessionContext) -> bool:
+        return "progress" in input_text.lower() or "update" in input_text.lower()
 
-
-class ProgressLog(BaseModel):
-    entries: List[ProgressEntry]
-
-
-@tool(name="track_progress", description="Track user progress, logs, or recovery notes.")
-def track_progress(
-    user_input: str,
-    context: RunContextWrapper[UserSessionContext]
-) -> ProgressLog:
-    """
-    Adds a new progress entry based on user input (e.g., 'Ran 2km today', 'Lost 1kg').
-    Stores logs in context for review or future schedule adjustment.
-    """
-
-    if not user_input or len(user_input.strip()) < 5:
-        raise ValueError("❌ Please enter a valid progress note.")
-
-    # Optional: injury-related validation
-    if "injury" in user_input.lower() or "pain" in user_input.lower():
-        if not validate_injury_input(user_input):
-            raise ValueError("⚠️ Please describe the injury more clearly.")
-
-    # Dummy entry — in production, date would be auto-handled
-    entry = ProgressEntry(
-        date="2025-07-04",  # Static for now; use datetime.now().date().isoformat() in real use
-        activity="General Update",
-        note=user_input
-    )
-
-    if context.progress_logs is None:
-        context.progress_logs = []
-
-    context.progress_logs.append(entry.dict())
-
-    return ProgressLog(entries=context.progress_logs)
+    async def execute(self, input_text: str, context: UserSessionContext) -> dict:
+        await asyncio.sleep(1)  # Simulate async processing
+        progress_update = {"update": input_text, "timestamp": "now"}
+        context.progress_logs.append(progress_update)
+        return validate_output({"progress": progress_update}, context)
