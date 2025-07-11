@@ -1,5 +1,3 @@
-# utils/user_auth.py
-
 import sqlite3
 import uuid
 from context import UserSessionContext

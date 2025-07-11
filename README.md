@@ -1,4 +1,4 @@
-# 🧠 Health & Wellness Agent
+# 🌱 SmartCare Health & Wellness Planner
 
 An AI-powered assistant that helps users set and achieve their health goals through CLI, Streamlit Dashboard, and Chainlit Chatbot interfaces.
 
