@@ -16,12 +16,11 @@ from utils.progress_chart import generate_progress_chart
 from utils.feedback import collect_feedback
 from utils.export_pdf import generate_progress_report
 
-# Load API keys and configuration from .env
+# Load API keys and configuration 
 load_dotenv(os.path.join(os.path.dirname(__file__), 'api.env'))
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 GEMINI_API_URL = os.getenv("GEMINI_API_URL")
 
-# Call Gemini API for AI-generated plans
 def call_gemini_api(prompt: str) -> str:
     if not GEMINI_API_KEY or not GEMINI_API_URL:
         return "❌ Gemini API configuration missing in .env"
@@ -35,13 +34,11 @@ def call_gemini_api(prompt: str) -> str:
     except Exception as e:
         return f"❌ Error: {str(e)}"
 
-# Try to extract structured goal info
 def parse_goal_input(text: str) -> str:
     pattern = r"(lose|gain)\s*(\d+\.?\d*)\s*(kg|lbs)\s*in\s*(\d+)\s*(months|weeks)"
     match = re.search(pattern, text.lower())
     return f"{match[1]} {match[2]} {match[3]} in {match[4]} {match[5]}" if match else text
 
-# Get current time in PKT
 def get_pkt_time() -> str:
     return datetime.now(pytz.timezone('Asia/Karachi')).isoformat()
 
@@ -101,10 +98,10 @@ if "context" not in st.session_state:
         progress_logs=[],
         handoff_logs=[]
     )
+
 if "is_authenticated" not in st.session_state:
     st.session_state.is_authenticated = False
 
-# ---------- Services ----------
 auth = UserAuth()
 profile_manager = ProfileManager()
 
@@ -211,33 +208,35 @@ elif page == "Progress Analytics":
             with st.spinner("Generating report..."):
                 st.session_state.context.timestamp = get_pkt_time()
                 result = generate_progress_report(st.session_state.context)
-                if result.get("message"):
+                if result and result.get("pdf_content"):
                     st.download_button(
                         label="Download PDF",
-                        data=result["content"].encode(),
-                        file_name=f"progress_report_{get_pkt_time()}.tex",
-                        mime="text/latex"
+                        data=result["pdf_content"],
+                        file_name=f"progress_report_{get_pkt_time()}.pdf",
+                        mime="application/pdf"
                     )
                     st.success("📄 Report ready!")
                 else:
-                    st.error("⚠️ Failed to generate report.")
+                    st.error("⚠️ Failed to generate report. Please try again.")
 
         if col2.button("Export Logs"):
             st.success("📤 Logs exported successfully (placeholder)")
 
-    with st.tabs(["🗂️ Consultations", "📆 Timeline"]) as (tab1, tab2):
-        with tab1:
-            if not st.session_state.context.handoff_logs:
-                st.info("No consultations yet.")
-            else:
-                for log in st.session_state.context.handoff_logs:
-                    st.markdown(f"<div style='background: #16213e; padding: 10px; border-radius: 8px;'>{log}</div>", unsafe_allow_html=True)
-        with tab2:
-            if not st.session_state.context.progress_logs:
-                st.info("No progress logs.")
-            else:
-                for log in st.session_state.context.progress_logs:
-                    st.markdown(f"<div style='background: #16213e; padding: 10px; border-radius: 8px;'>📅 {log['timestamp']}: {log['event']}</div>", unsafe_allow_html=True)
+    tab1, tab2 = st.tabs(["🗂️ Consultations", "📆 Timeline"])
+
+    with tab1:
+        if not st.session_state.context.handoff_logs:
+            st.info("No consultations yet.")
+        else:
+            for log in st.session_state.context.handoff_logs:
+                st.markdown(f"<div style='background: #16213e; padding: 10px; border-radius: 8px;'>{log}</div>", unsafe_allow_html=True)
+
+    with tab2:
+        if not st.session_state.context.progress_logs:
+            st.info("No progress logs.")
+        else:
+            for log in st.session_state.context.progress_logs:
+                st.markdown(f"<div style='background: #16213e; padding: 10px; border-radius: 8px;'>📅 {log['timestamp']}: {log['event']}</div>", unsafe_allow_html=True)
 
 # ---------- Alerts ----------
 elif page == "Alerts":
@@ -273,8 +272,8 @@ st.markdown(f"<div style='text-align: center; color: #a4b0be;'>© {datetime.now(
 # ---------- Sidebar Help ----------
 st.sidebar.markdown("""
 ### 📝 Quick Start Guide
-- Log in to get started
-- Set health goals for custom plans
-- Update your profile for better recommendations
-- Set reminders to stay on track
+- Log in to get started  
+- Set health goals for custom plans  
+- Update your profile for better recommendations  
+- Set reminders to stay on track  
 """)

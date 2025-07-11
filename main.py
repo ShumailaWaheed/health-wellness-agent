@@ -1,4 +1,4 @@
-import asyncio
+import chainlit as cl
 import uuid
 from agent import HealthWellnessAgent
 from context import UserSessionContext
@@ -12,8 +12,9 @@ from agents.nutrition_expert_agent import NutritionExpertAgent
 from agents.injury_support_agent import InjurySupportAgent
 from hooks import CustomRunHooks
 
-async def main():
-    user_context = UserSessionContext(
+@cl.on_chat_start
+async def on_chat_start():
+    cl.user_session.set("context", UserSessionContext(
         name="Fatima",
         uid=uuid.uuid4().int & (1 << 31) - 1,
         handoff_logs=[],
@@ -21,9 +22,9 @@ async def main():
         diet_preferences=["Vegetarian"],
         health_conditions=["Joint Issues"],
         goal=None
-    )
+    ))
 
-    # Tools
+    # Tools and agents
     tools = [
         GoalAnalyzerTool(),
         MealPlannerTool(),
@@ -32,40 +33,28 @@ async def main():
         ProgressTrackerTool()
     ]
 
-    # Handoff agents
     handoff_agents = {
         "escalation": EscalationAgent(),
         "nutrition_expert": NutritionExpertAgent(),
         "injury_support": InjurySupportAgent()
     }
 
-    # Agent with hooks
-    agent = HealthWellnessAgent(
-        tools=tools,
-        handoffs=handoff_agents,
-        hooks=CustomRunHooks()
-    )
+    agent = HealthWellnessAgent(tools=tools, handoffs=handoff_agents, hooks=CustomRunHooks())
+    cl.user_session.set("agent", agent)
 
-    print("\n🤖 Welcome to the Health & Wellness CLI Agent")
-    print("Type your health question below. Type 'exit' to quit.\n")
+    await cl.Message(content="🤖 Welcome to the Health & Wellness Planner! Ask your fitness or health-related questions.").send()
 
-    # CLI Interaction Loop
-    while True:
-        user_input = input("❓ You: ")
-        if user_input.lower() in ["exit", "quit"]:
-            print("👋 Goodbye!")
-            break
+# On Each User Message
+@cl.on_message
+async def on_message(message: cl.Message):
+    agent = cl.user_session.get("agent")
+    context = cl.user_session.get("context")
+    result = await agent.process_input(message.content, context)
 
-        result = await agent.process_input(user_input, user_context)
-
-        if "agent_advice" in result:
-            print("\n💡 Agent Advice:\n")
-            print(result["agent_advice"])
-        elif "error" in result:
-            print("❌ Error:", result["error"])
-        else:
-            print("❓ I didn’t understand. Please rephrase.")
-
-
-if __name__ == "__main__":
-    asyncio.run(main())
+    # Handle response
+    if "agent_advice" in result:
+        await cl.Message(content=result["agent_advice"]).send()
+    elif "error" in result:
+        await cl.Message(content=f"❌ {result['error']}").send()
+    else:
+        await cl.Message(content="🤔 I didn’t understand. Try rephrasing.").send()

@@ -1,51 +1,54 @@
 import re
-from pydantic import BaseModel
-from agents.decorators import tool
+from typing import Dict, Any
 from context import UserSessionContext
-from guardrails import validate_goal_input
 
-class Goal(BaseModel):
-    goal_type: str     # lose or gain
-    quantity: int
-    metric: str        # kg or lbs
-    duration: int
-    duration_unit: str # days, weeks, months
+class GoalAnalyzerTool:
+    name = "GoalAnalyzerTool"
+    description = "Extracts and sets the user's fitness goal."
 
-@tool(name="analyze_goal", description="Extract and save user fitness goals from input text.")
-async def analyze_goal(
-    user_input: str,
-    context: dict  # ✅ changed from RunContextWrapper to dict
-) -> dict:
-    """
-    Parses fitness goals from user input and saves them in context.
-    Expected format: 'lose 5kg in 2 months'
-    """
+    def should_trigger(self, input_text: str, context: UserSessionContext) -> bool:
+        """
+        Trigger if the input mentions weight or fitness goals.
+        """
+        keywords = ["lose", "gain", "weight", "fat", "muscle"]
+        return any(word in input_text.lower() for word in keywords)
 
-    # Validate input
-    if not validate_goal_input(user_input):
-        raise ValueError("❌ Please use a valid goal format like 'lose 5kg in 2 months'.")
+    async def execute(self, input_text: str, context: UserSessionContext) -> Dict[str, Any]:
+        """
+        Parses input like 'lose 5kg in 2 months' and stores the goal in context.
+        """
+        cleaned = input_text.lower().replace("loss", "lose").strip()
 
-    # Regex extract
-    pattern = r"(lose|gain)\s+(\d+)(kg|lbs)\s+in\s+(\d+)\s+(days|weeks|months)"
-    match = re.fullmatch(pattern, user_input.strip().lower())
+        pattern = (
+            r"(lose|gain)\s+"             # lose/gain
+            r"(\d+(?:\.\d+)?)\s*"         # number (5 or 5.5)
+            r"(kg|kgs|lbs|pounds)?\s*"    # optional unit
+            r"(in)?\s*"
+            r"(\d+)\s*"
+            r"(weeks?|months?)"
+        )
 
-    if not match:
-        raise ValueError("⚠️ Could not parse goal. Please check your wording.")
+        match = re.search(pattern, cleaned)
+        if match:
+            action, amount, unit, _, duration, duration_unit = match.groups()
+            unit = unit or "kg"
+            duration_unit = duration_unit.rstrip("s")
 
-    goal_type, quantity, metric, duration, duration_unit = match.groups()
-    goal = Goal(
-        goal_type=goal_type,
-        quantity=int(quantity),
-        metric=metric,
-        duration=int(duration),
-        duration_unit=duration_unit
-    )
+            goal_str = f"{action} {amount} {unit} in {duration} {duration_unit}"
+            context.goal = goal_str
 
-    # Save in context
-    context["goal"] = goal.dict()  # ✅ dict assignment
+            return {
+                "type": "goal",
+                "goal": {
+                    "action": action,
+                    "amount": amount,
+                    "unit": unit,
+                    "duration": duration,
+                    "duration_unit": duration_unit
+                },
+                "message": f"🎯 Goal detected: {goal_str}"
+            }
 
-    return {
-        "type": "goal_analysis",
-        "data": goal.dict(),
-        "message": f"🎯 Goal set: {goal.goal_type} {goal.quantity}{goal.metric} in {goal.duration} {goal.duration_unit}."
-    }
+        return {
+            "error": "❌ No valid goal found. Try: 'I want to lose 5kg in 2 months'."
+        }
